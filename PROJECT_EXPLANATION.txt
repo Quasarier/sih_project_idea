@@ -1,0 +1,358 @@
+COASTAL WATCH PROJECT EXPLANATION
+=================================
+
+1. PROJECT OVERVIEW
+
+Coastal Watch is an oil-spill investigation platform for the Indian west coast. It combines satellite imagery, environmental drift modeling, AIS vessel tracking, and explainable vessel ranking.
+
+The system helps analysts investigate:
+
+- Where an oil slick is located
+- How large it is
+- Where it may have originated
+- Where it may move next
+- Which vessels were near the likely origin
+- Why a vessel was ranked as relevant
+
+The system provides investigative indicators. It does not prove legal responsibility.
+
+2. PROJECT STRUCTURE
+
+frontend/
+    The currently runnable vanilla JavaScript dashboard.
+    - index.html: dashboard structure
+    - app.js: map, interactions, synthetic data, vessel scoring
+    - styles.css: layout and visual design
+
+frontend-react/
+    A separate React/Vite version of the dashboard. It uses React state and an SVG-based map. It is not the dashboard currently served at port 4173 and requires Node.js/npm.
+
+backend/
+    Reserved for API endpoints and orchestration services. It is intended to connect segmentation, drift modeling, AIS filtering, ranking, and evidence aggregation.
+
+data/
+    Contains synthetic AIS files, spill data, processed rankings, connectors, and schema placeholders.
+
+ml/
+    Contains the oil-slick segmentation and vessel-ranking modules.
+
+simulation/
+    Contains the drift reconstruction utilities and future forecast integration point.
+
+tests/
+    Contains unit tests for segmentation, drift calculations, and vessel ranking.
+
+3. USER WORKFLOW
+
+The current dashboard begins with a data-intake screen.
+
+The analyst can either:
+
+1. Upload an oil-spill TIFF and AIS CSV.
+2. Select the included demo files.
+
+After intake, the dashboard displays the investigation.
+
+Uploaded AIS data is parsed locally in the browser. The browser does not yet call the Python ML modules or a backend API.
+
+4. DATA INPUTS
+
+Satellite data:
+
+The system expects a GeoTIFF containing satellite imagery or a binary slick mask. Potential real sources include Sentinel-1 SAR and other Earth-observation imagery.
+
+AIS data:
+
+AIS records contain vessel identity and movement information, including MMSI, IMO number, timestamp, latitude, longitude, speed, heading, and ship type.
+
+Environmental data:
+
+The intended system will use wind speed and direction, ocean currents, waves, sea state, and water temperature. The current dashboard shows representative demo values rather than live data.
+
+5. SLICK SEGMENTATION
+
+The segmentation module is implemented in ml/segmentation/segment_slick.py.
+
+For binary rasters containing 0 and 1:
+
+- 0 represents background.
+- 1 represents probable slick.
+
+For continuous rasters, the module calculates a percentile threshold. By default, pixels at or below the 15th percentile are treated as possible slick pixels because oil may appear darker in SAR imagery.
+
+The output is a one-band GeoTIFF mask and metadata such as positive-pixel count, connected regions, CRS, and bounds.
+
+This is a baseline algorithm, not a trained deep-learning model. Dark regions can also result from low wind, natural films, shadows, rain, or imaging artifacts.
+
+6. SPILL GEOMETRY
+
+A real system would calculate:
+
+- Slick centroid
+- Area
+- Perimeter
+- Length and width
+- Connected regions
+- Polygon boundary
+- Detection confidence
+
+The current browser demo generates the visible slick polygon synthetically in frontend/app.js. It is not currently derived from the uploaded TIFF. The shape has an irregular outline, enlarged area, and stretched sections to resemble a slick affected by environmental movement.
+
+7. HINDCAST
+
+Hindcasting estimates where the slick may have originated.
+
+It starts from the observed slick and moves backward through time:
+
+Observed slick -> previous position -> earlier position -> probable origin
+
+The implementation is in simulation/hindcast/drift.py. The backtrack() function subtracts the movement vector at each time step.
+
+Hindcast answers: Where could the slick have come from?
+
+The browser map displays the hindcast as an orange dashed path. The displayed origin marker is derived from the hindcast endpoint rather than being independently placed at the observed slick.
+
+The current model uses fixed coordinate increments. It does not yet use time-varying currents, wind fields, waves, oil weathering, diffusion, or coastline interaction.
+
+8. FORECAST
+
+Forecast estimates where the slick may move in the future.
+
+It starts from the observed slick and applies the environmental movement vector forward:
+
+Current slick -> future position -> later projected position
+
+The forecast is displayed as a teal dashed path with direction arrows. It is intended to support response planning, coastal warnings, resource deployment, sensitive-area protection, and future satellite tasking.
+
+A production forecast should use an ensemble of possible paths. The current browser forecast is synthetic and does not use live ocean-model fields.
+
+9. AIS PROCESSING
+
+The ranking module is implemented in ml/ranking/rank_vessels.py.
+
+It:
+
+1. Groups positions by MMSI.
+2. Converts coordinates and numeric values.
+3. Parses timestamps as UTC.
+4. Sorts vessel positions chronologically.
+5. Finds the position closest to the probable origin.
+6. Calculates distance from the origin.
+7. Calculates time offset from the suspected discharge window.
+8. Compares vessel heading with expected movement.
+9. Assigns a prior based partly on vessel type.
+10. Combines the evidence into a posterior relevance value.
+11. Sorts vessels from highest to lowest relevance.
+
+10. VESSEL RANKING
+
+The ranking considers:
+
+- Proximity: distance from the probable origin
+- Timing: whether the vessel was present during the suspected window
+- Vessel type: tankers receive a higher prior because they commonly carry oil
+- Trajectory: compatibility between heading and expected movement
+
+A tanker is not automatically suspicious. The score only reflects relevance under the current evidence assumptions.
+
+11. BAYESIAN SCORING
+
+The model uses Bayesian odds:
+
+prior odds = prior probability / (1 - prior probability)
+
+posterior odds = prior odds x proximity evidence x timing evidence x vessel-type evidence x trajectory evidence
+
+The posterior is converted into a percentage-like score.
+
+A score such as 92/100 means the vessel is highly relevant under the model assumptions. It does not mean there is 92 percent legal certainty that the vessel caused the spill.
+
+12. EVIDENCE PANEL
+
+Selecting a vessel updates the evidence panel with:
+
+- Relevance score
+- Vessel type
+- Deadweight tonnage
+- Flag
+- Origin proximity
+- Time compatibility
+- Trajectory match
+- Behavioral anomaly
+- Explanation of the ranking
+
+The purpose is explainability: the analyst can see why a vessel ranked highly instead of receiving an unexplained black-box result.
+
+13. DASHBOARD SECTIONS
+
+The dashboard includes:
+
+- Investigation header
+- Slick confidence metric
+- Slick area metric
+- Origin window
+- Candidate vessel count
+- Spill summary
+- Environmental conditions
+- Leaflet investigation map
+- Vessel candidate list
+- Evidence panel
+- Evidence timeline
+- Export interaction
+
+The map displays the slick, origin estimate, uncertainty circle, hindcast path, forecast path, forecast arrows, vessel markers, and vessel tracks.
+
+14. SYNTHETIC VESSEL TRACKS
+
+The current map uses synthetic traffic. The remaining map vessels are named Vessel A through Vessel G.
+
+The four main suspect vessels are positioned near the spill. Their paths have different headings, lengths, curved sections, and randomized offsets so they do not all appear to move directly toward the slick.
+
+The tracks are visual demonstration data, not real AIS trajectories.
+
+15. ENVIRONMENT PANEL
+
+The dashboard displays representative values:
+
+- Wind: southwest at 18.6 km/h
+- Current: west-northwest at 0.72 m/s
+- Sea state: calm
+- Water temperature: 28.4 degrees C
+
+Live environmental services are not connected.
+
+16. TESTS
+
+Segmentation tests verify binary mask detection, positive-pixel counts, connected regions, and continuous raster thresholding.
+
+Drift tests verify backward movement, forward movement, origin-window duration, and path positions.
+
+Ranking tests verify nearby tanker ranking, time-window handling, and lower priors for non-tankers.
+
+Run the tests with:
+
+python -m unittest discover -s tests -v
+
+17. CURRENT LIMITATIONS
+
+- The frontend is not connected to the Python modules.
+- Uploaded TIFFs are not processed in the browser.
+- The visible slick is synthetic.
+- Environmental conditions are static.
+- AIS tracks are synthetic.
+- The drift model uses fixed coordinate steps.
+- There is no live API or database.
+- The export button does not generate a real report.
+- Coastline validation is not implemented.
+- There are no browser integration tests.
+- The React build cannot currently run without Node.js/npm.
+
+18. INTENDED PRODUCTION ARCHITECTURE
+
+Satellite data + AIS data + weather and ocean data
+                    |
+                    v
+              Data connectors
+                    |
+                    v
+            Validation and schemas
+                    |
+                    v
+             Slick segmentation
+                    |
+                    v
+             Hindcast and forecast
+                    |
+                    v
+            AIS filtering and ranking
+                    |
+                    v
+             Evidence aggregation
+                    |
+                    v
+                Backend API
+                    |
+                    v
+            Analyst dashboard
+
+A production backend should return incident metadata, slick geometry, detection confidence, origin region, origin time window, forecast ensembles, candidate vessels, evidence features, provenance, and uncertainty.
+
+19. HACKATHON DEMONSTRATION FLOW
+
+1. Introduce the oil-spill investigation problem.
+2. Load the synthetic oil-spill and AIS files.
+3. Show the detected slick and confidence.
+4. Explain the probable origin region.
+5. Show the backward hindcast path.
+6. Show the forward forecast path.
+7. Select a highly ranked vessel.
+8. Explain its score using distance, timing, vessel type, and trajectory.
+9. Show the evidence timeline.
+10. Explain the limitations and future production plan.
+
+The central message is:
+
+Coastal Watch does not make an accusation. It converts satellite, environmental, and AIS evidence into a transparent investigation workflow.
+
+20. PROBABLE HACKATHON QUESTIONS AND ANSWERS
+
+Q: What problem does Coastal Watch solve?
+A: It helps authorities investigate suspected oil spills by combining satellite observations, drift modeling, environmental conditions, and AIS vessel movement.
+
+Q: Is the system identifying the guilty vessel?
+A: No. It ranks vessels by investigative relevance. The result is not proof of liability or legal guilt.
+
+Q: Why use both hindcast and forecast?
+A: Hindcast looks backward to estimate origin. Forecast looks forward to estimate future movement.
+
+Q: What data does the system require?
+A: Satellite raster or slick mask, AIS vessel history, wind and ocean-current information, and vessel metadata. The demo uses synthetic data.
+
+Q: Is the segmentation model trained machine learning?
+A: Not yet. The current module is a baseline using binary-mask detection or lower-backscatter percentile thresholding. A future version would use labeled Sentinel-1 imagery and a trained model.
+
+Q: Why can oil appear dark in SAR imagery?
+A: Oil can dampen short surface waves, but dark areas can also come from low wind, natural films, shadows, rain, or artifacts. This is why multiple evidence sources are needed.
+
+Q: What does a 92/100 vessel score mean?
+A: It means the vessel is highly relevant under the current evidence and model assumptions. It is not a 92 percent legal certainty.
+
+Q: How does the system handle uncertainty?
+A: It can represent uncertainty through origin areas, forecast ensembles, confidence values, evidence provenance, and explicit limitations.
+
+Q: Why use synthetic data?
+A: Synthetic data allows a safe and repeatable demonstration without making claims about real vessels or incidents. It also provides controlled ground truth for testing.
+
+Q: How would the project use real data?
+A: Connectors would ingest Sentinel-1 scenes, real AIS streams, INCOIS currents, ERA5 winds, and vessel metadata. The backend would process and expose results through APIs.
+
+Q: Why not use a straight line for drift?
+A: Real slick movement is affected by changing winds, currents, waves, spreading, weathering, and coastlines. A production version should use time-varying fields and ensemble transport modeling.
+
+Q: How are AIS gaps handled?
+A: A gap can be displayed as evidence, but it is not automatically proof of wrongdoing. Gaps may result from equipment failure, coverage issues, transmission problems, or intentional disabling.
+
+Q: What happens when multiple vessels are near the origin?
+A: The model compares distance, timing, vessel type, heading, trajectory overlap, AIS continuity, and other evidence. Multiple vessels can remain plausible.
+
+Q: Can the system operate in real time?
+A: The architecture supports near-real-time operation, but the current prototype is not a live production system. Streaming AIS, scheduled satellite processing, live ocean data, alerting, and scalable infrastructure would be needed.
+
+Q: What is the biggest technical limitation?
+A: The browser demo is not connected end-to-end to the Python modules or production backend. The UI demonstrates the workflow while the Python modules demonstrate MVP algorithms independently.
+
+Q: How will accuracy be measured?
+A: Segmentation can use IoU, precision, recall, F1, and area error. Origin modeling can use location and time-window error. Ranking can use top-K recall, mean reciprocal rank, and false-positive rate.
+
+Q: What should be built next?
+A: Connect the dashboard to backend APIs, derive geometry from real GeoTIFFs, integrate real environmental fields, replace fixed-step drift with a transport engine, add coastline validation, calibrate ranking against historical incidents, and generate real investigation reports.
+
+Q: Who would use the platform?
+A: Coast Guard analysts, pollution-control authorities, port authorities, environmental agencies, maritime investigators, response coordinators, and researchers.
+
+Q: What is the main innovation?
+A: It combines satellite detection, environmental drift, AIS movement, probabilistic ranking, and an evidence timeline into one explainable workflow.
+
+ONE-LINE SUMMARY
+
+Coastal Watch is an explainable geospatial intelligence platform that reconstructs oil-spill origins, forecasts movement, and ranks nearby vessels using satellite, ocean, and AIS evidence.

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spill Evidence Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar"><div class="product"><span class="product-mark">SW</span><span>SPILL EVIDENCE WORKBENCH</span></div><nav><button class="active">Overview</button><button>Detection</button><button>Drift model</button><button>AIS analysis</button></nav><div class="mode"><i></i> Synthetic case · UTC</div></header>
+  <main>
+    <div class="casebar"><div><span class="label">CASE</span><strong>IN-2024-0618 · Arabian Sea</strong></div><div><span class="label">OBSERVATION</span><strong>18 Jun 2024 · 06:42</strong></div><div><span class="label">STATUS</span><strong class="status">Under review</strong></div><button class="plain-button">Export case</button></div>
+    <section class="workspace">
+      <aside class="summary-column">
+        <section class="block"><div class="block-title">SPILL SUMMARY</div><dl><div><dt>Detection confidence</dt><dd>87.4%</dd></div><div><dt>Estimated area</dt><dd>12.8 km²</dd></div><div><dt>Observed shape</dt><dd>Elongated</dd></div><div><dt>Age estimate</dt><dd>6–12 h</dd></div></dl></section>
+        <section class="block"><div class="block-title">ENVIRONMENT</div><dl><div><dt>Wind</dt><dd>SW · 18.6 km/h</dd></div><div><dt>Current</dt><dd>WNW · 0.72 m/s</dd></div><div><dt>Sea state</dt><dd>Calm</dd></div></dl></section>
+         <section class="block"><div class="block-title">DATA STATUS</div><dl><div><dt>Scene</dt><dd>Loaded</dd></div><div><dt>Vessel tracks</dt><dd>12 tracks</dd></div><div><dt>Conditions</dt><dd>Available</dd></div></dl></section>
+      </aside>
+      <section class="evidence-column">
+        <div class="panel-title"><div><span class="label">01 · DETECTION</span><h1>Observed spill footprint</h1></div><span class="chip orange">MASK OUTPUT</span></div>
+        <div class="raster-card"><img src="assets/01339-oil-render.png" alt="Uploaded oil spill rendered over textured sea surface"><div class="raster-overlay"><span>PROBABLE SLICK</span><strong>Detected region</strong><small>Scene preview</small></div><div class="north">N</div></div>
+        <div class="map-caption"><span><i class="swatch slick"></i>Detected slick</span><span><i class="swatch uncertain"></i>Origin uncertainty</span><span><i class="swatch track"></i>Vessel track</span><small>Scene preview</small></div>
+      </section>
+      <aside class="ranking-column"><div class="panel-title"><div><span class="label">03 · ATTRIBUTION</span><h2>Candidate vessels</h2></div><span class="chip teal">BAYESIAN</span></div><p class="explain">Posterior relevance from proximity, timing, vessel type, and heading.</p><div class="ranked"><button class="vessel selected" data-vessel="a"><span class="rank">01</span><span><b>Vessel A</b><small>IMO 9382147 · tanker</small></span><strong>96.9%</strong></button><button class="vessel" data-vessel="b"><span class="rank">02</span><span><b>Vessel B</b><small>IMO 9720031 · tanker</small></span><strong>78.5%</strong></button><button class="vessel" data-vessel="c"><span class="rank">03</span><span><b>Vessel C</b><small>IMO 9298402 · bulk carrier</small></span><strong>10.9%</strong></button><button class="vessel" data-vessel="d"><span class="rank">04</span><span><b>Vessel D</b><small>IMO 9511840 · container</small></span><strong>18.7%</strong></button></div><div class="posterior"><div class="posterior-head"><span>Selected posterior</span><strong id="posterior-value">96.9%</strong></div><div class="posterior-bar"><i id="posterior-bar" style="width:96.9%"></i></div><small id="posterior-note">Strong spatial and temporal match</small></div></aside>
+    <section class="lower-grid"><article class="panel model-panel"><div class="panel-title"><div><span class="label">02 · HINDCAST</span><h2>Where did it originate?</h2></div><span class="model-tag past">PAST</span></div><div class="mini-chart"><div class="axis-y"><span>19.0°N</span><span>18.5°N</span><span>18.0°N</span></div><svg viewBox="0 0 380 120" preserveAspectRatio="none"><path class="grid-line" d="M0 20H380M0 60H380M0 100H380M90 0V120M190 0V120M290 0V120"/><path class="past-line" d="M28 20 C86 22 106 45 158 64 S239 89 338 100"/><circle class="origin-point" cx="28" cy="20" r="5"/><circle class="observed-point" cx="338" cy="100" r="5"/></svg></div><p class="model-note">Backward drift points to <b>18.72°N, 72.10°E</b> with a 9.6 km uncertainty radius.</p></article><article class="panel model-panel"><div class="panel-title"><div><span class="label">02 · FORECAST</span><h2>Where will it move?</h2></div><span class="model-tag future">+24 H</span></div><div class="mini-chart"><div class="axis-y"><span>19.0°N</span><span>18.5°N</span><span>18.0°N</span></div><svg viewBox="0 0 380 120" preserveAspectRatio="none"><path class="grid-line" d="M0 20H380M0 60H380M0 100H380M90 0V120M190 0V120M290 0V120"/><path class="future-line" d="M28 100 C86 92 126 76 171 63 S260 40 348 16"/><circle class="observed-point" cx="28" cy="100" r="5"/><circle class="future-point" cx="348" cy="16" r="5"/></svg></div><p class="model-note">Forward envelope uses <b>INCOIS currents</b> and <b>ERA5 wind</b>. Position error ±4.6 km.</p></article><article class="panel model-panel traffic-panel"><div class="panel-title"><div><span class="label">03 · AIS WINDOW</span><h2>Traffic near origin</h2></div><span class="model-tag">16 POSITIONS</span></div><div class="traffic-chart"><svg viewBox="0 0 380 130" preserveAspectRatio="none"><path class="grid-line" d="M0 20H380M0 60H380M0 100H380M80 0V130M180 0V130M280 0V130"/><path class="traffic-line candidate" d="M12 111 L78 98 L143 81 L206 65 L274 49 L355 31"/><path class="traffic-line" d="M5 18 L70 31 L128 50 L196 41 L260 62 L360 85"/><path class="traffic-line" d="M16 75 L78 62 L151 68 L220 93 L296 104 L370 112"/><circle class="traffic-origin" cx="206" cy="65" r="18"/></svg></div><p class="model-note"><b>Vessel A</b> crosses the origin window; other tracks are filtered as lower relevance.</p></article></section>
+    <footer><span>All data shown in this view is synthetic for MVP validation.</span><span>Models support investigation; they do not establish legal liability.</span></footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

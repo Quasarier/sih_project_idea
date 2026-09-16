@@ -1,0 +1,272 @@
+{
+  "origin": [
+    18.72,
+    72.1
+  ],
+  "candidates": [
+    {
+      "mmsi": "419001001",
+      "imo": "9382147",
+      "vessel_name": "Vessel A",
+      "ship_type": "tanker",
+      "distance_km": 0.0,
+      "time_offset_hours": 0,
+      "posterior": 96.9,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 8.0,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 3.0
+      },
+      "evidence": {
+        "origin_proximity": true,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 0.0
+      }
+    },
+    {
+      "mmsi": "419001002",
+      "imo": "9720031",
+      "vessel_name": "MT Konkan Pride",
+      "ship_type": "tanker",
+      "distance_km": 8.46,
+      "time_offset_hours": 0,
+      "posterior": 78.5,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 4.0,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 0.7
+      },
+      "evidence": {
+        "origin_proximity": true,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 137.0
+      }
+    },
+    {
+      "mmsi": "419001012",
+      "imo": "9401012",
+      "vessel_name": "MT Deccan Star",
+      "ship_type": "tanker",
+      "distance_km": 26.43,
+      "time_offset_hours": 0,
+      "posterior": 59.4,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 1.6,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 0.7
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 172.0
+      }
+    },
+    {
+      "mmsi": "419001008",
+      "imo": "9401008",
+      "vessel_name": "MT Western Crest",
+      "ship_type": "tanker",
+      "distance_km": 132.7,
+      "time_offset_hours": 0,
+      "posterior": 53.4,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 1.6
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 57.0
+      }
+    },
+    {
+      "mmsi": "419001005",
+      "imo": "9401005",
+      "vessel_name": "MV Kaveri Dawn",
+      "ship_type": "tanker",
+      "distance_km": 71.55,
+      "time_offset_hours": 0,
+      "posterior": 33.4,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 0.7
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 178.0
+      }
+    },
+    {
+      "mmsi": "419001006",
+      "imo": "9401006",
+      "vessel_name": "MT Ratnagiri",
+      "ship_type": "tanker",
+      "distance_km": 75.98,
+      "time_offset_hours": 0,
+      "posterior": 33.4,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 0.7
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 93.0
+      }
+    },
+    {
+      "mmsi": "419001010",
+      "imo": "9401010",
+      "vessel_name": "MT Narmada",
+      "ship_type": "tanker",
+      "distance_km": 44.33,
+      "time_offset_hours": 0,
+      "posterior": 33.4,
+      "prior": 0.08,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 2.5,
+        "trajectory": 0.7
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": true,
+        "heading_delta_deg": 158.0
+      }
+    },
+    {
+      "mmsi": "419001009",
+      "imo": "9401009",
+      "vessel_name": "MV Coral Bay",
+      "ship_type": "container",
+      "distance_km": 54.6,
+      "time_offset_hours": 0,
+      "posterior": 18.7,
+      "prior": 0.03,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 0.75,
+        "trajectory": 3.0
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": false,
+        "heading_delta_deg": 13.0
+      }
+    },
+    {
+      "mmsi": "419001011",
+      "imo": "9401011",
+      "vessel_name": "MV Ocean Prabha",
+      "ship_type": "bulk_carrier",
+      "distance_km": 141.91,
+      "time_offset_hours": 0,
+      "posterior": 18.7,
+      "prior": 0.03,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 0.75,
+        "trajectory": 3.0
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": false,
+        "heading_delta_deg": 27.0
+      }
+    },
+    {
+      "mmsi": "419001003",
+      "imo": "9298402",
+      "vessel_name": "MV Malabar Crest",
+      "ship_type": "bulk_carrier",
+      "distance_km": 61.99,
+      "time_offset_hours": 0,
+      "posterior": 10.9,
+      "prior": 0.03,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 0.75,
+        "trajectory": 1.6
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": false,
+        "heading_delta_deg": 38.0
+      }
+    },
+    {
+      "mmsi": "419001007",
+      "imo": "9401007",
+      "vessel_name": "MV Sagar Kavach",
+      "ship_type": "offshore_supply",
+      "distance_km": 36.8,
+      "time_offset_hours": 0,
+      "posterior": 10.9,
+      "prior": 0.03,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 0.75,
+        "trajectory": 1.6
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": false,
+        "heading_delta_deg": 37.0
+      }
+    },
+    {
+      "mmsi": "419001004",
+      "imo": "9511840",
+      "vessel_name": "MV Godavari Star",
+      "ship_type": "container",
+      "distance_km": 111.77,
+      "time_offset_hours": 0,
+      "posterior": 5.1,
+      "prior": 0.03,
+      "likelihood_ratios": {
+        "proximity": 0.55,
+        "timing": 6.0,
+        "vessel_type": 0.75,
+        "trajectory": 0.7
+      },
+      "evidence": {
+        "origin_proximity": false,
+        "inside_time_window": true,
+        "tanker_profile": false,
+        "heading_delta_deg": 87.0
+      }
+    }
+  ]
+}
