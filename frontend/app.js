@@ -1,8 +1,8 @@
 const vesselData = {
-  samudra: { name: 'Vessel A', prior: 0.08, likelihoods: [8.5, 5.2, 3.2], status: 'HIGH RELEVANCE', type: 'Crude oil tanker', dwt: '158,000 t', flag: 'India', note: 'Passed 2.4 km from the origin zone 38 min before the inferred discharge window. A 14 min AIS gap overlaps the highest-probability point.' },
-  konkan: { name: 'Vessel B', prior: 0.07, likelihoods: [6.2, 3.7, 2.45], status: 'HIGH RELEVANCE', type: 'Product tanker', dwt: '74,200 t', flag: 'India', note: 'Crossed the outer origin ellipse 1h 12m before the window. Course alignment is strong, but continuous AIS coverage lowers anomaly confidence.' },
-  malabar: { name: 'Vessel C', prior: 0.05, likelihoods: [3.8, 2.8, 3.1], status: 'REVIEW', type: 'Bulk carrier', dwt: '81,500 t', flag: 'India', note: 'Trajectory passes through the wider hindcast envelope. Vessel class and stable AIS pattern make a discharge less likely.' },
-  godavari: { name: 'Vessel D', prior: 0.04, likelihoods: [1.8, 2.4, 3.9], status: 'LOW RELEVANCE', type: 'Container ship', dwt: '68,100 t', flag: 'India', note: 'Observed nearby after the probable origin window. Its heading and timing are inconsistent with the reconstructed source.' }
+  samudra: { name: 'Vessel A', prior: 0.08, likelihoods: [8.5, 5.2, 3.2], status: 'HIGH RELEVANCE', type: 'Crude oil tanker', dwt: '158,000 t', flag: 'India', note: 'Passed 2.4 km from the origin zone 38 min before the inferred discharge window.' },
+  konkan: { name: 'Vessel B', prior: 0.07, likelihoods: [6.2, 3.7, 2.45], status: 'HIGH RELEVANCE', type: 'Product tanker', dwt: '74,200 t', flag: 'India', note: 'Crossed the outer origin ellipse 1h 12m before the window.' },
+  malabar: { name: 'Vessel C', prior: 0.05, likelihoods: [3.8, 2.8, 3.1], status: 'REVIEW', type: 'Bulk carrier', dwt: '81,500 t', flag: 'India', note: 'Trajectory passes through the wider hindcast envelope.' },
+  godavari: { name: 'Vessel D', prior: 0.04, likelihoods: [1.8, 2.4, 3.9], status: 'LOW RELEVANCE', type: 'Container ship', dwt: '68,100 t', flag: 'India', note: 'Observed nearby after the probable origin window.' }
 };
 
 const intakeScreen = document.querySelector('#intake-screen');
@@ -59,19 +59,35 @@ function applyAnalysisResult(result) {
   result.candidates.slice(0, candidateRows.length).forEach((candidate, index) => {
     const score = Math.round(candidate.posterior);
     candidateRows[index].dataset.candidateIndex = index;
-    const displayName = result.scenario === 'demo1' ? `Vessel ${String.fromCharCode(65 + index)}` : candidate.vessel_name;
+    // Use actual vessel name from API, fall back to Vessel A/B/C for demo scenarios
+    const displayName = candidate.vessel_name || `Vessel ${String.fromCharCode(65 + index)}`;
     candidateRows[index].querySelector('.vessel-info strong').textContent = displayName;
     candidateRows[index].querySelector('.vessel-info small').textContent = `IMO ${candidate.imo} · ${candidate.ship_type}`;
     candidateRows[index].querySelector('.evidence-value b').textContent = `${candidate.distance_km} km`;
     candidateRows[index].querySelector('.evidence-value small').textContent = `${candidate.time_offset_hours}h offset`;
     candidateRows[index].querySelector('.score').innerHTML = `${score}<span>/100</span>`;
+    
+    // Update evidence bars with actual data from API
+    const values = [
+      candidate.evidence.origin_proximity ? 96 : 42, 
+      candidate.evidence.inside_time_window ? 91 : 38, 
+      candidate.evidence.trajectory_match, 
+      candidate.evidence.behavioral_anomaly
+    ];
+    
+    // Update candidate bars
     if (candidateBars[index]) {
       candidateBars[index].querySelector('i').style.width = `${score}%`;
       candidateBars[index].querySelector('b').textContent = score;
-      candidateBars[index].querySelector('span').textContent = result.scenario === 'demo1' ? `Vessel ${String.fromCharCode(65 + index)}` : candidate.vessel_name;
+      candidateBars[index].querySelector('span').textContent = candidate.vessel_name || `Vessel ${String.fromCharCode(65 + index)}`;
     }
   });
   if (candidateRows[0]) candidateRows[0].click();
+}
+
+function showAnalysisError() {
+  document.querySelector('#data-status').textContent = 'ANALYSIS UNAVAILABLE';
+  document.querySelector('#ais-meta').textContent = 'The API could not complete this analysis';
 }
 
 function loadScenario(scenarioId, tiffName, aisName, fallbackRows) {
@@ -79,7 +95,7 @@ function loadScenario(scenarioId, tiffName, aisName, fallbackRows) {
   fetch(`http://localhost:8001/api/analyze?scenario=${scenarioId}`)
     .then((response) => response.ok ? response.json() : Promise.reject(new Error('Analysis API unavailable')))
     .then(applyAnalysisResult)
-    .catch(() => {});
+    .catch(showAnalysisError);
 }
 
 function updateFileNames() {
@@ -248,8 +264,16 @@ rows.forEach((row) => row.addEventListener('click', () => {
     document.querySelector('#selected-vessel').textContent = row.querySelector('.vessel-info strong').textContent;
     document.querySelector('#candidate-score').textContent = Math.round(apiCandidate.posterior);
     document.querySelector('.status-tag').textContent = apiCandidate.posterior >= 70 ? 'HIGH RELEVANCE' : apiCandidate.posterior >= 50 ? 'REVIEW' : 'LOW RELEVANCE';
-    document.querySelector('.candidate-facts').innerHTML = `<div><span>VESSEL TYPE</span><strong>${apiCandidate.ship_type}</strong></div><div><span>IMO</span><strong>${apiCandidate.imo}</strong></div><div><span>DISTANCE</span><strong>${apiCandidate.distance_km} km</strong></div>`;
-    document.querySelector('.evidence-note p').innerHTML = `<strong>Bayesian update</strong> Ranking combines proximity, timing, vessel type, and trajectory evidence. Current posterior relevance: ${apiCandidate.posterior}%.`;
+    const candidateFacts = document.querySelector('.candidate-facts');
+    candidateFacts.innerHTML = '<div><span>VESSEL TYPE</span><strong></strong></div><div><span>IMO</span><strong></strong></div><div><span>DISTANCE</span><strong></strong></div>';
+    candidateFacts.querySelectorAll('strong')[0].textContent = apiCandidate.ship_type;
+    candidateFacts.querySelectorAll('strong')[1].textContent = apiCandidate.imo;
+    candidateFacts.querySelectorAll('strong')[2].textContent = `${apiCandidate.distance_km} km`;
+    const evidenceNote = document.querySelector('.evidence-note p');
+    evidenceNote.textContent = '';
+    const evidenceTitle = document.createElement('strong');
+    evidenceTitle.textContent = 'Bayesian update';
+    evidenceNote.append(evidenceTitle, document.createTextNode(` Ranking combines proximity, timing, vessel type, and trajectory evidence. Current posterior relevance: ${apiCandidate.posterior}%.`));
     updateEvidenceBars(apiCandidate);
     return;
   }
@@ -257,8 +281,16 @@ rows.forEach((row) => row.addEventListener('click', () => {
   document.querySelector('#selected-vessel').textContent = vessel.name;
   document.querySelector('#candidate-score').textContent = vessel.score;
   document.querySelector('.status-tag').textContent = vessel.status;
-  document.querySelector('.candidate-facts').innerHTML = `<div><span>VESSEL TYPE</span><strong>${vessel.type}</strong></div><div><span>DWT</span><strong>${vessel.dwt}</strong></div><div><span>FLAG</span><strong>${vessel.flag}</strong></div>`;
-  document.querySelector('.evidence-note p').innerHTML = `<strong>Bayesian update</strong> Prior vessel relevance updated by proximity, timing, and trajectory evidence. ${vessel.note}`;
+  const candidateFacts = document.querySelector('.candidate-facts');
+  candidateFacts.innerHTML = '<div><span>VESSEL TYPE</span><strong></strong></div><div><span>DWT</span><strong></strong></div><div><span>FLAG</span><strong></strong></div>';
+  candidateFacts.querySelectorAll('strong')[0].textContent = vessel.type;
+  candidateFacts.querySelectorAll('strong')[1].textContent = vessel.dwt;
+  candidateFacts.querySelectorAll('strong')[2].textContent = vessel.flag;
+  const evidenceNote = document.querySelector('.evidence-note p');
+  evidenceNote.textContent = '';
+  const evidenceTitle = document.createElement('strong');
+  evidenceTitle.textContent = 'Bayesian update';
+  evidenceNote.append(evidenceTitle, document.createTextNode(` Prior vessel relevance updated by proximity, timing, and trajectory evidence. ${vessel.note}`));
 }));
 
 document.querySelectorAll('.view-tab').forEach((tab) => tab.addEventListener('click', () => {

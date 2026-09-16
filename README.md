@@ -24,7 +24,20 @@ pip install -r ml/requirements.txt
 
 ### 2) Start the local API backend
 
-Run the backend before opening the dashboard, because the frontend requests analysis data from the local API:
+Run the backend before opening the dashboard. Choose either the Docker deployment or the direct Python deployment.
+
+#### Docker deployment (recommended)
+
+From the project root:
+
+```powershell
+docker build -t coastal-watch-api .
+docker run --rm --name coastal-watch-api -p 8001:8001 coastal-watch-api
+```
+
+#### Direct Python deployment
+
+With the virtual environment activated:
 
 ```powershell
 python backend\api\server.py
@@ -33,8 +46,10 @@ python backend\api\server.py
 This starts the analysis API at:
 
 ```text
-http://localhost:8001/api/analyze
+http://localhost:8001/health
 ```
+
+The analysis endpoint is available at `http://localhost:8001/api/analyze?scenario=demo1`.
 
 ### 3) Serve the frontend
 
@@ -56,9 +71,7 @@ The root page serves the static dashboard from `frontend/index.html`.
 
 ### 4) Optional React frontend
 
-If you want to run the React version instead, make sure Node.js 20+ is installed first:
-
-If you want to run the React version instead:
+Make sure Node.js 20+ is installed first:
 
 ```powershell
 cd frontend-react
