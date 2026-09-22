@@ -69,6 +69,15 @@ The root page serves the static dashboard from `frontend/index.html`.
 
 > Important: the frontend is static and relies on the backend API being running at `http://localhost:8001`.
 
+## Demo walkthrough
+
+Open the dashboard at `http://localhost:4173/` and use the intake buttons:
+
+- **Use demo1 files** loads the Mumbai offshore scenario.
+- **Use demo2 files** loads the Gujarat/Arabian Sea scenario.
+
+Each button calls the matching API scenario and updates the map, incident details, candidate vessels, and attribution evidence. Candidate scores are investigative indicators calculated from AIS proximity, timing, vessel type, trajectory, and behavioral anomalies; they are not legal findings.
+
 ### 4) Optional React frontend
 
 Make sure Node.js 20+ is installed first:
@@ -87,6 +96,8 @@ The prototype currently supports scenario-based analysis via `demo1` and `demo2`
 - `demo2` uses `data/raw/demo2_ais_tracks.csv` and `data/raw/demo2_oil_spill_mask.tif`
 
 These are configured in `backend/api/server.py` and are intended as synthetic demo data for development and presentation.
+
+The scenarios intentionally use different AIS tracks, origins, time windows, environmental conditions, and spill metadata. Their ranked vessel lists and posterior scores should therefore change when switching between the two demo buttons.
 
 ## Repository layout
 
