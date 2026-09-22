@@ -39,6 +39,13 @@ class TestWorkflow(unittest.TestCase):
         payload = json.loads(body)
         self.assertEqual(payload["scenario"], "demo1")
         self.assertIsInstance(payload["candidates"], list)
+        self.assertIn(payload["segmentation"]["status"], {"complete", "unavailable", "failed"})
+        self.assertIn("drift", payload)
+        self.assertEqual(payload["drift"]["hours"], 4)
+        self.assertEqual(len(payload["drift"]["hindcast"]), 5)
+        self.assertEqual(len(payload["drift"]["forecast"]), 5)
+        self.assertEqual(payload["drift"]["hindcast"][0], payload["origin"])
+        self.assertEqual(payload["drift"]["hindcast"][-1], payload["drift"]["calculated_origin"])
 
     def test_unknown_scenario(self):
         status, _, body = self.get_response("/api/analyze?scenario=invalid")

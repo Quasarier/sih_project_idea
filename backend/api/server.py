@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import tempfile
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -28,6 +29,8 @@ API_TOKEN = os.getenv("COASTAL_WATCH_API_TOKEN")
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from ml.ranking.rank_vessels import parse_time, rank_vessels
+from ml.segmentation.segment_slick import segment_tiff
+from simulation.hindcast.drift import forecast, origin_window
 
 SCENARIOS = {
     "demo1": {
@@ -41,6 +44,7 @@ SCENARIOS = {
         "area_km2": 12.8,
         "confidence": 87.4,
         "environment": {"wind": "SW · 18.6 km/h", "current": "WNW · 0.72 m/s", "sea_state": "Calm", "water_temperature": "28.4 °C", "current_vector": [0.14, 0.20]},
+        "drift_curve_strength": 0.08,
     },
     "demo2": {
         "ais": ROOT / "data/raw/demo2_ais_tracks.csv",
@@ -53,6 +57,7 @@ SCENARIOS = {
         "area_km2": 27.6,
         "confidence": 79.2,
         "environment": {"wind": "NE · 24.2 km/h", "current": "ENE · 1.08 m/s", "sea_state": "Moderate", "water_temperature": "30.1 °C", "current_vector": [0.24, 0.08]},
+        "drift_curve_strength": 0.12,
     },
 }
 
@@ -88,6 +93,21 @@ def summarize_tiff(path: Path) -> dict:
         return {"width": None, "height": None, "positive_pixels": None, "positive_percent": None, "error": f"Error processing image: {str(e)}"}
 
 
+def segment_scenario_tiff(path: Path) -> dict:
+    """Run the real segmentation baseline without leaving a generated mask behind."""
+    try:
+        with tempfile.TemporaryDirectory(prefix="coastal-watch-") as directory:
+            output_path = Path(directory) / "segmented-mask.tif"
+            result = segment_tiff(path, output_path, threshold=15.0)
+        result["status"] = "complete"
+        return result
+    except SystemExit as error:
+        return {"status": "unavailable", "error": str(error)}
+    except Exception as error:
+        logger.warning("Segmentation failed for %s: %s", path, error)
+        return {"status": "failed", "error": str(error)}
+
+
 def analyze(scenario_id: str) -> dict:
     """Analyze a scenario and return results."""
     
@@ -117,6 +137,16 @@ def analyze(scenario_id: str) -> dict:
         tiff_summary = summarize_tiff(scenario["tiff"])
         if "error" in tiff_summary:
             logger.warning(f"Error summarizing TIFF: {tiff_summary['error']}")
+        segmentation = segment_scenario_tiff(scenario["tiff"])
+
+        window_start = parse_time(scenario["window_start"])
+        window_end = parse_time(scenario["window_end"])
+        drift_hours = max(1, round((window_end - window_start).total_seconds() / 3600))
+        current_vector = tuple(scenario["environment"]["current_vector"])
+        observed_point = tuple(scenario["origin"])
+        curve_strength = scenario["drift_curve_strength"]
+        drift_origin = origin_window(observed_point, current_vector, drift_hours, curve_strength)
+        drift_forecast = forecast(observed_point, current_vector, drift_hours, curve_strength)
         
         # Create result
         result = {
@@ -131,7 +161,15 @@ def analyze(scenario_id: str) -> dict:
             "confidence": scenario["confidence"], 
             "environment": scenario["environment"], 
             "tiff_summary": tiff_summary, 
-            "candidates": candidates
+            "segmentation": segmentation,
+            "candidates": candidates,
+            "drift": {
+                "hours": drift_hours,
+                "curve_strength": curve_strength,
+                "hindcast": drift_origin["path"],
+                "forecast": drift_forecast,
+                "calculated_origin": drift_origin["start"],
+            },
         }
         
         logger.info(f"Completed analysis for scenario {scenario_id} with {len(candidates)} candidates")

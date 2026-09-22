@@ -11,11 +11,24 @@ const aisInput = document.querySelector('#ais-file');
 const analyzeButton = document.querySelector('#analyze-button');
 const demoButton = document.querySelector('#demo-button');
 const demo2Button = document.querySelector('#demo2-button');
+const newAnalysisButton = document.querySelector('#new-analysis-button');
 const fileNames = document.querySelectorAll('.file-name');
 let loadedAisRows = [];
 let activeCandidates = [];
 let activeScenario = 'demo1';
 let activeCurrentVector = [0.14, 0.20];
+let activeDrift = null;
+
+function formatShipType(shipType) {
+  return {
+    tanker: 'Oil tanker',
+    oil_tanker: 'Oil tanker',
+    product_tanker: 'Product tanker',
+    bulk_carrier: 'Bulk carrier',
+    container: 'Container ship',
+    offshore_supply: 'Offshore supply vessel'
+  }[shipType] || shipType.replaceAll('_', ' ');
+}
 
 function updateEvidenceBars(candidate) {
   const values = [candidate.evidence.origin_proximity ? 96 : 42, candidate.evidence.inside_time_window ? 91 : 38, candidate.evidence.trajectory_match, candidate.evidence.behavioral_anomaly];
@@ -38,6 +51,7 @@ function applyAnalysisResult(result) {
   [result.environment.wind, result.environment.current, `Sea state ${result.environment.sea_state}`, `Water ${result.environment.water_temperature}`].forEach((value, index) => { environmentValues[index].textContent = value; });
   activeScenario = result.scenario;
   activeCurrentVector = result.environment.current_vector;
+  activeDrift = result.drift;
   const metricCards = document.querySelectorAll('.metrics-grid .metric-card');
   metricCards[0].querySelector('.metric-value').innerHTML = `${result.confidence}<span>%</span>`;
   metricCards[1].querySelector('.metric-value').innerHTML = `${result.area_km2}<span> km²</span>`;
@@ -46,23 +60,23 @@ function applyAnalysisResult(result) {
   document.querySelectorAll('.summary-list dd')[4].textContent = `${result.confidence}%`;
   observedSlickCenter[0] = result.origin[0];
   observedSlickCenter[1] = result.origin[1];
-  if (result.hindcast_origin) {
-    document.querySelector('.map-footer strong').textContent = `${result.hindcast_origin[0].toFixed(2)}, ${result.hindcast_origin[1].toFixed(2)}`;
+  if (result.drift?.calculated_origin) {
+    document.querySelector('.map-footer strong').textContent = `${result.drift.calculated_origin[0].toFixed(2)}, ${result.drift.calculated_origin[1].toFixed(2)}`;
   }
   slickCenter = [...result.origin];
   map.setView([result.origin[0] + 0.13, result.origin[1] + 0.15], 8);
   updateScenarioTraffic(result.scenario);
+  activeCandidates = result.candidates;
+  updateTrafficLabels(result.candidates);
   renderSlick();
   const candidateRows = document.querySelectorAll('.vessel-row');
   const candidateBars = document.querySelectorAll('.candidate-chart > div');
-  activeCandidates = result.candidates;
   result.candidates.slice(0, candidateRows.length).forEach((candidate, index) => {
     const score = Math.round(candidate.posterior);
     candidateRows[index].dataset.candidateIndex = index;
-    // Use actual vessel name from API, fall back to Vessel A/B/C for demo scenarios
-    const displayName = candidate.vessel_name || `Vessel ${String.fromCharCode(65 + index)}`;
+    const displayName = `Vessel ${String.fromCharCode(65 + index)}`;
     candidateRows[index].querySelector('.vessel-info strong').textContent = displayName;
-    candidateRows[index].querySelector('.vessel-info small').textContent = `IMO ${candidate.imo} · ${candidate.ship_type}`;
+    candidateRows[index].querySelector('.vessel-info small').textContent = `IMO ${candidate.imo} · ${formatShipType(candidate.ship_type)}`;
     candidateRows[index].querySelector('.evidence-value b').textContent = `${candidate.distance_km} km`;
     candidateRows[index].querySelector('.evidence-value small').textContent = `${candidate.time_offset_hours}h offset`;
     candidateRows[index].querySelector('.score').innerHTML = `${score}<span>/100</span>`;
@@ -79,7 +93,7 @@ function applyAnalysisResult(result) {
     if (candidateBars[index]) {
       candidateBars[index].querySelector('i').style.width = `${score}%`;
       candidateBars[index].querySelector('b').textContent = score;
-      candidateBars[index].querySelector('span').textContent = candidate.vessel_name || `Vessel ${String.fromCharCode(65 + index)}`;
+      candidateBars[index].querySelector('span').textContent = displayName;
     }
   });
   if (candidateRows[0]) candidateRows[0].click();
@@ -103,6 +117,19 @@ function updateFileNames() {
   fileNames[1].textContent = aisInput.files[0]?.name || fileNames[1].dataset.empty;
   analyzeButton.disabled = !(tiffInput.files.length && aisInput.files.length);
 }
+
+function startNewAnalysis() {
+  tiffInput.value = '';
+  aisInput.value = '';
+  loadedAisRows = [];
+  activeCandidates = [];
+  activeDrift = null;
+  fileNames.forEach((fileName) => { fileName.textContent = fileName.dataset.empty; });
+  analyzeButton.disabled = true;
+  intakeScreen.classList.remove('hidden');
+}
+
+newAnalysisButton.addEventListener('click', startNewAnalysis);
 
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -181,8 +208,23 @@ const vesselLayers = traffic.map((vessel) => {
   const marker = L.circleMarker([vessel.lat, vessel.lng], { radius: vessel.name.includes('Samudra') ? 6 : 4, color: '#fff', weight: 1.5, fillColor: '#1a63ad', fillOpacity: 0.95 }).addTo(map).bindTooltip(`${vessel.name}<br><small>Simulated AIS position</small>`, { direction: 'top', offset: [0, -5] });
   return { ...vessel, bend, line, marker };
 });
+function updateTrafficLabels(candidates) {
+  const visibleLayers = vesselLayers.filter((vessel) => map.hasLayer(vessel.marker));
+  visibleLayers.forEach((vessel, index) => {
+    const label = `Vessel ${String.fromCharCode(65 + index)}`;
+    const type = candidates[index]?.ship_type ? formatShipType(candidates[index].ship_type) : 'Synthetic AIS position';
+    vessel.mapLabel = label;
+    vessel.marker.setTooltipContent(`${label}<br><small>${type}</small>`);
+  });
+}
 function updateScenarioTraffic(scenarioId) {
-  if (scenarioId !== 'demo2') return;
+  if (scenarioId !== 'demo2') {
+    vesselLayers.slice(0, 2).forEach((vessel) => {
+      if (!map.hasLayer(vessel.marker)) map.addLayer(vessel.marker);
+      if (!map.hasLayer(vessel.line)) map.addLayer(vessel.line);
+    });
+    return;
+  }
   const positions = { 'Vessel C': [20.48, 70.18], 'Vessel D': [20.665, 68.9], 'Vessel E': [20.7, 69.3], 'Vessel F': [20.8, 68.9], 'Vessel G': [21.12, 69.8] };
   vesselLayers.forEach((vessel, index) => {
     if (vessel.name === 'Vessel A' || vessel.name === 'Vessel B') {
@@ -234,17 +276,17 @@ function renderSlick() {
   } else {
     centroidMarker.setLatLng(slickCenter);
   }
-  const driftEnd = [slickCenter[0] + activeCurrentVector[0] * 3, slickCenter[1] + activeCurrentVector[1] * 5];
+  const calculatedHindcast = activeDrift?.hindcast?.map(([lat, lng]) => [lat, lng]);
+  const calculatedForecast = activeDrift?.forecast?.map(([lat, lng]) => [lat, lng]);
+  const driftEnd = calculatedForecast?.at(-1) || [slickCenter[0] + activeCurrentVector[0] * 3, slickCenter[1] + activeCurrentVector[1] * 5];
   if (forecastLayer) map.removeLayer(forecastLayer);
   forecastLayer = L.layerGroup().addTo(map);
-  const forecastMid = [slickCenter[0] + activeCurrentVector[0], slickCenter[1] + activeCurrentVector[1]];
-  const forecastCurve = curvedPath(slickCenter, [forecastMid[0] - 0.08, forecastMid[1] - 0.02], [forecastMid[0] + 0.09, forecastMid[1] + 0.08], driftEnd);
-  L.polyline(forecastCurve, { color: '#16a39a', weight: 3, dashArray: '8 7' }).addTo(forecastLayer);
+  const forecastPath = calculatedForecast || curvedPath(slickCenter, [driftEnd[0] - 0.08, driftEnd[1] - 0.02], [driftEnd[0] + 0.09, driftEnd[1] + 0.08], driftEnd);
+  L.polyline(forecastPath, { color: '#16a39a', weight: 3, dashArray: '8 7' }).addTo(forecastLayer);
   if (hindcastLayer) map.removeLayer(hindcastLayer);
-  const hindcastStart = [observedSlickCenter[0] - activeCurrentVector[0] * 4, observedSlickCenter[1] - activeCurrentVector[1] * 4];
-  const hindcastMid = [observedSlickCenter[0] - activeCurrentVector[0] * 2, observedSlickCenter[1] - activeCurrentVector[1] * 2];
-  const hindcastCurve = curvedPath(hindcastStart, [hindcastMid[0] - 0.18, hindcastMid[1] - 0.12], [hindcastMid[0] + 0.12, hindcastMid[1] + 0.12], slickCenter);
-  hindcastLayer = L.polyline(hindcastCurve, { color: '#d6854f', weight: 3, dashArray: '3 7' }).addTo(map);
+  const hindcastStart = calculatedHindcast?.at(-1) || [observedSlickCenter[0] - activeCurrentVector[0] * 4, observedSlickCenter[1] - activeCurrentVector[1] * 4];
+  const hindcastPath = calculatedHindcast || curvedPath(hindcastStart, [hindcastStart[0] + 0.18, hindcastStart[1] + 0.12], [slickCenter[0] - 0.12, slickCenter[1] - 0.12], slickCenter);
+  hindcastLayer = L.polyline(hindcastPath, { color: '#d6854f', weight: 3, dashArray: '3 7' }).addTo(map);
   if (!originMarker) {
     originMarker = L.circleMarker(hindcastStart, { radius: 7, color: '#fff', weight: 2, fillColor: '#df8054', fillOpacity: 1 }).addTo(map).bindTooltip('<b>Hindcast origin estimate</b><br>Derived from backward drift reconstruction', { direction: 'right', offset: [12, 0], opacity: 0.95 });
     originUncertainty = L.circle(hindcastStart, { radius: 9000, color: '#df8c5b', weight: 1, dashArray: '4 5', fill: false }).addTo(map);
@@ -266,7 +308,7 @@ rows.forEach((row) => row.addEventListener('click', () => {
     document.querySelector('.status-tag').textContent = apiCandidate.posterior >= 70 ? 'HIGH RELEVANCE' : apiCandidate.posterior >= 50 ? 'REVIEW' : 'LOW RELEVANCE';
     const candidateFacts = document.querySelector('.candidate-facts');
     candidateFacts.innerHTML = '<div><span>VESSEL TYPE</span><strong></strong></div><div><span>IMO</span><strong></strong></div><div><span>DISTANCE</span><strong></strong></div>';
-    candidateFacts.querySelectorAll('strong')[0].textContent = apiCandidate.ship_type;
+    candidateFacts.querySelectorAll('strong')[0].textContent = formatShipType(apiCandidate.ship_type);
     candidateFacts.querySelectorAll('strong')[1].textContent = apiCandidate.imo;
     candidateFacts.querySelectorAll('strong')[2].textContent = `${apiCandidate.distance_km} km`;
     const evidenceNote = document.querySelector('.evidence-note p');
